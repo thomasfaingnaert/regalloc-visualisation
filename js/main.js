@@ -24,13 +24,17 @@ var options = {
                 'background': 'white'
             };
             callback(data);
-            setInstructionLabel('&nbsp;');
+
+            // Keep adding nodes
+            network.addNodeMode();
         },
 
         addEdge: function (data, callback) {
             data['dashes'] = create_move_edge;
             callback(data);
-            setInstructionLabel('&nbsp;');
+
+            // Keep adding edges
+            network.addEdgeMode();
         }
     },
 
@@ -67,6 +71,11 @@ function addMoveEdge() {
     network.addEdgeMode();
 }
 
+function exitEditMode() {
+    network.disableEditMode();
+    setInstructionLabel("&nbsp;");
+}
+
 function deleteSelected() {
     network.deleteSelected();
 }
@@ -80,6 +89,8 @@ document.onkeydown = function (event) {
         addInterferenceEdge();
     else if (event.key == 'm')
         addMoveEdge();
+    else if (event.key == 'x')
+        exitEditMode();
     else if (event.key == 'd')
         deleteSelected();
     else if (event.key == 's')
