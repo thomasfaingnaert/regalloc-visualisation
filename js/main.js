@@ -1,4 +1,3 @@
-var K = 4; // TODO: let user input this
 var colours = ['lightblue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'cyan'];
 
 var node_stack = []
@@ -124,6 +123,10 @@ function simplify() {
     nodes.remove(selected_node_ids[0]);
 }
 
+function getK() {
+    return document.getElementById('numRegisters').value;
+}
+
 function select() {
     if (node_stack.length == 0)
         return;
@@ -137,6 +140,7 @@ function select() {
 
     // Find a colour for the node
     possible_colours = colours.map(x => x);
+    possible_colours = possible_colours.slice(0, getK());
 
     edges.forEach(function (value) {
         if (value['from'] == added_node_ids[0]) {
