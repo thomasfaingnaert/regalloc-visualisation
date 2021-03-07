@@ -18,6 +18,7 @@ var options = {
 
         addNode: function (data, callback) {
             data['label'] = get_next_free_node_label();
+
             data['color'] = {
                 'border': 'black',
                 'background': 'white'
@@ -53,6 +54,12 @@ function get_next_free_node_label() {
     return String.fromCharCode(cur_char_code++);
 }
 
+var cur_precoloured_label = 1;
+
+function get_next_free_precoloured_node_label() {
+    return (cur_precoloured_label++).toString();
+}
+
 function setInstructionLabel(content) {
     document.getElementById('instructionsLabel').innerHTML = content;
 }
@@ -60,6 +67,31 @@ function setInstructionLabel(content) {
 function addNode() {
     setInstructionLabel('Click in an empty space to place a new node.');
     network.addNodeMode();
+}
+
+function addPrecolouredNodes() {
+    var added_node_ids = [];
+
+    // Add nodes
+    for (var i = 0; i < getK(); ++i) {
+        added_node_ids = added_node_ids.concat(nodes.add({
+            'label': (i + 1).toString(),
+            'color': {
+                'border': 'black',
+                'background': 'white'
+            }
+        }));
+    }
+
+    // Run physics, because otherwise all these nodes overlap
+    network.stabilize();
+
+    // Add edges between each pair of nodes
+    for (var i = 0; i < added_node_ids.length; ++i) {
+        for (var j = i + 1; j < added_node_ids.length; ++j) {
+            edges.add({'from': added_node_ids[i], 'to': added_node_ids[j], 'dashes': false});
+        }
+    }
 }
 
 function addInterferenceEdge() {
@@ -88,6 +120,8 @@ document.onkeydown = function (event) {
 
     if (event.key == 'n')
         addNode();
+    else if (event.key == 'p')
+        addPrecolouredNodes();
     else if (event.key == 'i')
         addInterferenceEdge();
     else if (event.key == 'm')
@@ -217,7 +251,7 @@ function coalesce() {
 
         edges.forEach(function (edge) {
             // Is this edge the one we are looking for?
-            if ((edge['from'] == neighbour['id'] && edge['to'] == node1['id']) || 
+            if ((edge['from'] == neighbour['id'] && edge['to'] == node1['id']) ||
                 (edge['from'] == node1['id'] && edge['to'] == neighbour['id'])) {
                 // Yes, so merge them
                 edge['dashes'] = edge['dashes'] && value['dashes'];
@@ -231,7 +265,7 @@ function coalesce() {
 
         // If we haven't found an edge, we have to create a new one
         if (!found) {
-            edges.add({'from': node1['id'], 'to': neighbour['id'], 'dashes': value['dashes']});
+            edges.add({ 'from': node1['id'], 'to': neighbour['id'], 'dashes': value['dashes'] });
         }
     });
 
