@@ -39,6 +39,10 @@ var options = {
 
     physics: {
         enabled: false
+    },
+
+    interaction: {
+        multiselect: true
     }
 };
 var network = new vis.Network(container, data, options);
@@ -96,26 +100,28 @@ document.onkeydown = function (event) {
         simplify();
     else if (event.key == 'l')
         select();
+    else if (event.key == 'c')
+        coalesce();
 }
 
 function updateNodeStackLabel() {
-    content = node_stack.map(node => node['label']).join(', ');
+    var content = node_stack.map(node => node['label']).join(', ');
     document.getElementById('nodeStackLabel').innerHTML = 'Node stack: ' + content;
 }
 
 function simplify() {
-    selected_node_ids = network.getSelectedNodes();
+    var selected_node_ids = network.getSelectedNodes();
 
     // Remove deleted nodes
     selected_node_ids = selected_node_ids.filter(id => nodes.get(id) != null);
 
-    if (selected_node_ids.length == 0) {
-        setInstructionLabel('You need to select one or more nodes to simplify!');
+    if (selected_node_ids.length != 1) {
+        setInstructionLabel('You need to select exactly one node to simplify!');
         return;
     }
 
     // Push node to stack
-    node = nodes.get(selected_node_ids[0]);
+    var node = nodes.get(selected_node_ids[0]);
     node_stack.push(node);
     updateNodeStackLabel();
 
@@ -132,14 +138,14 @@ function select() {
         return;
 
     // Pop node
-    node = node_stack.pop();
+    var node = node_stack.pop();
     updateNodeStackLabel();
 
     // Add node back
-    added_node_ids = nodes.add(node);
+    var added_node_ids = nodes.add(node);
 
     // Find a colour for the node
-    possible_colours = colours.map(x => x);
+    var possible_colours = colours.map(x => x);
     possible_colours = possible_colours.slice(0, getK());
 
     edges.forEach(function (value) {
@@ -160,10 +166,78 @@ function select() {
         return;
     }
 
-    colour = possible_colours[0];
+    var colour = possible_colours[0];
 
     node['color']['background'] = colour;
 
     // Colour the node
     nodes.update(node);
+}
+
+function coalesce() {
+    var selected_node_ids = network.getSelectedNodes();
+
+    // Remove deleted nodes
+    var selected_node_ids = selected_node_ids.filter(id => nodes.get(id) != null);
+
+    if (selected_node_ids.length != 2) {
+        setInstructionLabel('You need to select exactly two nodes to coalesce!');
+        return;
+    }
+
+    // Get the selected nodes
+    var node1 = nodes.get(selected_node_ids[0]);
+    var node2 = nodes.get(selected_node_ids[1]);
+
+    // First, update the label of the first node
+    // Sort new label text (e.g. bca --> abc)
+    var new_label = node1['label'] + node2['label'];
+    new_label = new_label.split('').sort().join('');
+    node1['label'] = new_label;
+
+    // Add all edges from node2 to node1 as well
+    // First, iterate over all neighbours of node2
+    edges.forEach(function (value) {
+        // Get the neighbour of node2
+        var neighbour = null;
+
+        if (value['from'] == selected_node_ids[1] && value['to'] != selected_node_ids[0]) {
+            neighbour = nodes.get(value['to']);
+        } else if (value['to'] == selected_node_ids[1] && value['from'] != selected_node_ids[0]) {
+            neighbour = nodes.get(value['from']);
+        }
+
+        if (neighbour == null)
+            return;
+
+        console.log(neighbour);
+
+        // Now, iterate over all edges around node1
+        var found = false;
+
+        edges.forEach(function (edge) {
+            // Is this edge the one we are looking for?
+            if ((edge['from'] == neighbour['id'] && edge['to'] == node1['id']) || 
+                (edge['from'] == node1['id'] && edge['to'] == neighbour['id'])) {
+                // Yes, so merge them
+                edge['dashes'] = edge['dashes'] && value['dashes'];
+                edges.update(edge);
+
+                found = true;
+            }
+        });
+
+        console.log(found);
+
+        // If we haven't found an edge, we have to create a new one
+        if (!found) {
+            edges.add({'from': node1['id'], 'to': neighbour['id'], 'dashes': value['dashes']});
+        }
+    });
+
+    // Propagate changes to node 1
+    nodes.update(node1);
+
+    // Delete node 2
+    nodes.remove(node2);
 }
