@@ -343,6 +343,9 @@ function importNodes(nodeData) {
             label: node.label,
             x: node.x,
             y: node.y,
+            color: {
+                background: 'white'
+            }
         });
     });
 }
