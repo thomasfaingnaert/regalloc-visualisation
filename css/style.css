@@ -3,3 +3,7 @@
     height: 800px;
   }
   
+.buttonStack {
+  display: block;
+  margin: 12pt 0;
+}

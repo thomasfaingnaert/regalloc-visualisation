@@ -22,28 +22,32 @@
     <div class="container">
         <h1>Register Allocation via Graph Colouring</h1>
 
-        <button type="button" class="btn btn-outline-primary" onclick="addNode()">Add node (n)</button>
-        <button type="button" class="btn btn-outline-primary" onclick="addPrecolouredNodes()">Add precoloured nodes (p)</button>
-        <button type="button" class="btn btn-outline-primary" onclick="addInterferenceEdge()">Add interference edge (i)</button>
-        <button type="button" class="btn btn-outline-primary" onclick="addMoveEdge()">Add move-related edge (m)</button>
-        <button type="button" class="btn btn-outline-primary" onclick="exitEditMode()">Exit edit mode (x)</button>
+        <div class="btn-group-vertical buttonStack">
+            <button type="button" class="btn btn-outline-primary" onclick="addNode()">Add node (n)</button>
+            <button type="button" class="btn btn-outline-primary" onclick="addPrecolouredNodes()">Add precoloured nodes
+                (p)</button>
+            <button type="button" class="btn btn-outline-primary" onclick="addInterferenceEdge()">Add interference edge
+                (i)</button>
+            <button type="button" class="btn btn-outline-primary" onclick="addMoveEdge()">Add move-related edge
+                (m)</button>
+            <button type="button" class="btn btn-outline-primary" onclick="exitEditMode()">Exit edit mode (x)</button>
+        </div>
 
-        <p></p>
+        <div class="btn-group-vertical buttonStack">
+            <button type="button" class="btn btn-outline-danger" onclick="deleteSelected()">Delete selected node/edge
+                (d)</button>
+        </div>
 
-        <button type="button" class="btn btn-outline-danger" onclick="deleteSelected()">Delete selected node/edge (d)</button>
+        <div class="btn-group-vertical buttonStack">
+            <button type="button" class="btn btn-outline-primary" onclick="simplify()">Simplify node (s)</button>
+            <button type="button" class="btn btn-outline-primary" onclick="select()">Select (l)</button>
+            <button type="button" class="btn btn-outline-primary" onclick="coalesce()">Coalesce (c)</button>
+        </div>
 
-        <p></p>
-
-        <button type="button" class="btn btn-outline-primary" onclick="simplify()">Simplify node (s)</button>
-        <button type="button" class="btn btn-outline-primary" onclick="select()">Select (l)</button>
-        <button type="button" class="btn btn-outline-primary" onclick="coalesce()">Coalesce (c)</button>
-
-        <p></p>
-
-        <button type="button" class="btn btn-outline-primary" onclick="showImportDialog()">Import</button>
-        <button type="button" class="btn btn-outline-primary" onclick="exportNetwork()">Export</button>
-
-        <p></p>
+        <div class="btn-group-vertical buttonStack">
+            <button type="button" class="btn btn-outline-primary" onclick="showImportDialog()">Import</button>
+            <button type="button" class="btn btn-outline-primary" onclick="exportNetwork()">Export</button>
+        </div>
 
         <p>
             Number of registers:
@@ -51,10 +55,10 @@
         </p>
 
         <p>
-            <div class="custom-control custom-switch">
-                <input class="custom-control-input" type="checkbox" id="physicsCheckBox" onclick="setPhysics()">
-                <label class="custom-control-label" for="physicsCheckBox">Enable physics</label>
-            </div>
+        <div class="custom-control custom-switch">
+            <input class="custom-control-input" type="checkbox" id="physicsCheckBox" onclick="setPhysics()">
+            <label class="custom-control-label" for="physicsCheckBox">Enable physics</label>
+        </div>
         </p>
 
         <p id="nodeStackLabel">Node stack:</p>
@@ -62,7 +66,6 @@
         <p id="instructionsLabel">&nbsp;</p>
 
         <div class="w-100 p-3" id="network"></div>
-
 
         <!-- Import modal -->
         <div class="modal fade" id="importModal">
