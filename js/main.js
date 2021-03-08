@@ -163,7 +163,11 @@ function simplify() {
 }
 
 function getK() {
-    return document.getElementById('numRegisters').value;
+    return $('#numRegisters').val();
+}
+
+function setK(value) {
+    $('#numRegisters').val(parseInt(value));
 }
 
 function select() {
@@ -278,7 +282,8 @@ function coalesce() {
 function exportNetwork() {
     var exportValue = JSON.stringify({
         nodes: exportNodes(),
-        edges: exportEdges()
+        edges: exportEdges(),
+        K: getK()
     }, undefined, 2);
 
     $('#exportJSONTextArea').val(exportValue);
@@ -320,6 +325,7 @@ function importNetwork() {
 
     importNodes(inputData['nodes']);
     importEdges(inputData['edges']);
+    setK(inputData['K']);
 }
 
 function importNodes(nodeData) {
