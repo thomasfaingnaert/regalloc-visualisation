@@ -87,7 +87,10 @@ function addPrecolouredNodes() {
     // Add nodes
     for (var i = 0; i < getK(); ++i) {
         added_node_ids = added_node_ids.concat(nodes.add({
-            'label': (i + 1).toString()
+            label: (i + 1).toString(),
+            color: {
+                background: 'white'
+            }
         }));
     }
 
