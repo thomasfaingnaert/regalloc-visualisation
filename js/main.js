@@ -18,6 +18,9 @@ var options = {
 
         addNode: function (data, callback) {
             data['label'] = get_next_free_node_label();
+            data['color'] = {
+                'background': 'white'
+            }
 
             callback(data);
 
