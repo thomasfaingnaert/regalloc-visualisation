@@ -42,7 +42,8 @@ var options = {
     },
 
     interaction: {
-        multiselect: true
+        multiselect: true,
+        selectConnectedEdges: false
     },
 
     nodes: {
