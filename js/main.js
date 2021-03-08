@@ -303,8 +303,8 @@ function exportNodes() {
         return {
             id: nodeid,
             label: nodes.get(nodeid).label,
-            x: nodes.get(nodeid).x,
-            y: nodes.get(nodeid).y
+            x: network.getPosition(nodeid).x,
+            y: network.getPosition(nodeid).y
         };
     });
 }
