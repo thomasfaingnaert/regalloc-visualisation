@@ -19,10 +19,6 @@ var options = {
         addNode: function (data, callback) {
             data['label'] = get_next_free_node_label();
 
-            data['color'] = {
-                'border': 'black',
-                'background': 'white'
-            };
             callback(data);
 
             // Keep adding nodes
@@ -44,6 +40,13 @@ var options = {
 
     interaction: {
         multiselect: true
+    },
+
+    nodes: {
+        color: {
+            border: 'black',
+            background: 'white'
+        }
     }
 };
 var network = new vis.Network(container, data, options);
@@ -75,11 +78,7 @@ function addPrecolouredNodes() {
     // Add nodes
     for (var i = 0; i < getK(); ++i) {
         added_node_ids = added_node_ids.concat(nodes.add({
-            'label': (i + 1).toString(),
-            'color': {
-                'border': 'black',
-                'background': 'white'
-            }
+            'label': (i + 1).toString()
         }));
     }
 
@@ -89,7 +88,7 @@ function addPrecolouredNodes() {
     // Add edges between each pair of nodes
     for (var i = 0; i < added_node_ids.length; ++i) {
         for (var j = i + 1; j < added_node_ids.length; ++j) {
-            edges.add({'from': added_node_ids[i], 'to': added_node_ids[j], 'dashes': false});
+            edges.add({ 'from': added_node_ids[i], 'to': added_node_ids[j], 'dashes': false });
         }
     }
 }
@@ -274,4 +273,72 @@ function coalesce() {
 
     // Delete node 2
     nodes.remove(node2);
+}
+
+function exportNetwork() {
+    var exportValue = JSON.stringify({
+        nodes: exportNodes(),
+        edges: exportEdges()
+    }, undefined, 2);
+
+    $('#exportJSONTextArea').val(exportValue);
+    $('#exportModal').modal();
+}
+
+function exportNodes() {
+    return nodes.getIds().map(nodeid => {
+        return {
+            id: nodeid,
+            label: nodes.get(nodeid).label,
+            x: nodes.get(nodeid).x,
+            y: nodes.get(nodeid).y
+        };
+    });
+}
+
+function exportEdges() {
+    return edges.getIds().map(edgeid => {
+        return {
+            from: edges.get(edgeid).from,
+            to: edges.get(edgeid).to,
+            dashes: edges.get(edgeid).dashes
+        };
+    })
+}
+
+function showImportDialog() {
+    $('#importModal').modal();
+}
+
+function importNetwork() {
+    var importValue = $('#importJSONTextArea').val();
+
+    nodes.clear();
+    edges.clear();
+
+    var inputData = JSON.parse(importValue);
+
+    importNodes(inputData['nodes']);
+    importEdges(inputData['edges']);
+}
+
+function importNodes(nodeData) {
+    nodeData.forEach(function (node) {
+        nodes.add({
+            id: node.id,
+            label: node.label,
+            x: node.x,
+            y: node.y,
+        });
+    });
+}
+
+function importEdges(edgeData) {
+    edgeData.forEach(function (edge) {
+        edges.add({
+            from: edge.from,
+            to: edge.to,
+            dashes: edge.dashes
+        })
+    });
 }
