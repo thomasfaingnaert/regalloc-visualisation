@@ -51,6 +51,11 @@ var options = {
 };
 var network = new vis.Network(container, data, options);
 
+function setPhysics() {
+    options.physics.enabled = $('#physicsCheckBox').is(':checked');
+    network.setOptions(options);
+}
+
 var cur_char_code = 97; // a
 
 function get_next_free_node_label() {

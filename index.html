@@ -50,6 +50,13 @@
             <input type="number" id="numRegisters" min="1" max="50" value="4">
         </p>
 
+        <p>
+            <div class="custom-control custom-switch">
+                <input class="custom-control-input" type="checkbox" id="physicsCheckBox" onclick="setPhysics()">
+                <label class="custom-control-label" for="physicsCheckBox">Enable physics</label>
+            </div>
+        </p>
+
         <p id="nodeStackLabel">Node stack:</p>
 
         <p id="instructionsLabel">&nbsp;</p>
@@ -73,7 +80,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="importNetwork()">Import</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal"
+                            onclick="importNetwork()">Import</button>
                     </div>
                 </div>
             </div>
