@@ -259,8 +259,6 @@ function coalesce() {
         if (neighbour == null)
             return;
 
-        console.log(neighbour);
-
         // Now, iterate over all edges around node1
         var found = false;
 
@@ -275,8 +273,6 @@ function coalesce() {
                 found = true;
             }
         });
-
-        console.log(found);
 
         // If we haven't found an edge, we have to create a new one
         if (!found) {
