@@ -143,10 +143,14 @@ document.onkeydown = function (event) {
         deleteSelected();
     else if (event.key == 's')
         simplify();
+    else if (event.key == 'c')
+        candidateSpill();
     else if (event.key == 'l')
         select();
-    else if (event.key == 'c')
-        coalesce();
+    else if (event.key == 'b')
+        coalesceBriggs();
+    else if (event.key == 'g')
+        coalesceGeorge();
 }
 
 function updateNodeStackLabel() {
@@ -172,6 +176,10 @@ function simplify() {
 
     // Remove node
     nodes.remove(selected_node_ids[0]);
+}
+
+function candidateSpill() {
+    simplify();
 }
 
 function getK() {
@@ -285,6 +293,14 @@ function coalesce() {
 
     // Delete node 2
     nodes.remove(node2);
+}
+
+function coalesceBriggs() {
+    coalesce();
+}
+
+function coalesceGeorge() {
+    coalesce();
 }
 
 function exportNetwork() {
