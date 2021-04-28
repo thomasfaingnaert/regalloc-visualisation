@@ -255,7 +255,7 @@ function candidateSpill() {
             return false;
         }
 
-        if (num_neighbours >= getK()) {
+        if (num_neighbours < getK()) {
             setInstructionLabel(`Cannot spill node of insignificant degree: ${num_neighbours} < K, you should simplify instead!`);
             return false;
         }
