@@ -178,12 +178,13 @@ function deleteSelected() {
 
 /**
  * Gets the neighbours of the node with the given ID. The move_edges parameter determines whether to follow only interference, or only move-related edges.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
  * @param {vis.DataSet} edges The DataSet containing the edges.
  * @param {string} node_id The ID of the node.
  * @param {boolean} move_edges If true, follow only move-related edges; if false (default), follow only interference edges.
  * @returns An Array containing the IDs of the neighbouring nodes.
  */
-function getNeighbourIds(edges, node_id, move_edges = false) {
+function getNeighbourIds(nodes, edges, node_id, move_edges = false) {
     var neighbour_ids = [];
 
     edges.forEach(edge => {
@@ -192,6 +193,16 @@ function getNeighbourIds(edges, node_id, move_edges = false) {
             return;
         }
 
+        // Both endpoints must not be deleted.
+        if (nodes.get(edge['from']) == null) {
+            return;
+        }
+
+        if (nodes.get(edge['to']) == null) {
+            return;
+        }
+
+        // Either endpoint must match the given node.
         if (edge['from'] == node_id) {
             neighbour_ids.push(edge['to']);
         }
@@ -205,44 +216,48 @@ function getNeighbourIds(edges, node_id, move_edges = false) {
 
 /**
  * Checks whether a node is move related, i.e. has a neighbour connect to it via a move edge.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
  * @param {vis.DataSet} edges The DataSet containing the edges.
  * @param {string} node_id The ID of the node.
  * @returns True iff the given node is move related.
  */
-function isMoveRelated(edges, node_id) {
-    return getNeighbourIds(edges, node_id, true).length > 0;
+function isMoveRelated(nodes, edges, node_id) {
+    return getNeighbourIds(nodes, edges, node_id, true).length > 0;
 }
 
 /**
  * Gets the degree of the node with the given ID, i.e. the number of nodes that are connected to it via interference edges.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
  * @param {vis.DataSet} edges The DataSet containing the edges.
  * @param {string} node_id The ID of the node.
  * @returns The degree of the given node.
  */
-function getDegree(edges, node_id) {
-    return getNeighbourIds(edges, node_id).length;
+function getDegree(nodes, edges, node_id) {
+    return getNeighbourIds(nodes, edges, node_id).length;
 }
 
 /**
  * Checks whether two nodes are move related, i.e. are connected by a move-related edge.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
  * @param {vis.DataSet} edges The DataSet containing the edges.
  * @param {string} node_1_id The ID of the first node.
  * @param {string} node_2_id The ID of the second node.
  * @returns True iff the two nodes are move related.
  */
-function areMoveRelated(edges, node_1_id, node_2_id) {
-    return getNeighbourIds(edges, node_1_id, true).includes(node_2_id);
+function areMoveRelated(nodes, edges, node_1_id, node_2_id) {
+    return getNeighbourIds(nodes, edges, node_1_id, true).includes(node_2_id);
 }
 
 /**
  * Checks whether two nodes interfere, i.e. are connected by an interference edge.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
  * @param {vis.DataSet} edges The DataSet containing the edges.
  * @param {string} node_1_id The ID of the first node.
  * @param {string} node_2_id The ID of the second node.
  * @returns True iff the two nodes interfere.
  */
-function interfere(edges, node_1_id, node_2_id) {
-    return getNeighbourIds(edges, node_1_id, false).includes(node_2_id);
+function interfere(nodes, edges, node_1_id, node_2_id) {
+    return getNeighbourIds(nodes, edges, node_1_id, false).includes(node_2_id);
 }
 
 /**
@@ -357,12 +372,12 @@ function simplify() {
         // AND
         // 2) non-MOVE related
 
-        if (isMoveRelated(edges, selected_node_id)) {
+        if (isMoveRelated(nodes, edges, selected_node_id)) {
             setInstructionLabel('Cannot simplify move-related nodes!');
             return false;
         }
 
-        var degree = getDegree(edges, selected_node_id);
+        var degree = getDegree(nodes, edges, selected_node_id);
 
         if (degree >= getK()) {
             setInstructionLabel(`Cannot simplify node of significant degree: ${degree} >= K!`);
@@ -380,12 +395,12 @@ function candidateSpill() {
         // AND
         // 2) non-MOVE related
 
-        if (isMoveRelated(edges, selected_node_id)) {
+        if (isMoveRelated(nodes, edges, selected_node_id)) {
             setInstructionLabel('Cannot spill move-related nodes!');
             return false;
         }
 
-        var degree = getDegree(edges, selected_node_id);
+        var degree = getDegree(nodes, edges, selected_node_id);
 
         if (degree < getK()) {
             setInstructionLabel(`Cannot spill node of insignificant degree: ${degree} < K, you should simplify instead!`);
@@ -411,7 +426,7 @@ function select() {
     var possible_colours = colours.map(x => x);
     possible_colours = possible_colours.slice(0, getK());
 
-    getNeighbourIds(edges, added_node_ids[0]).forEach(node_id => {
+    getNeighbourIds(nodes, edges, added_node_ids[0]).forEach(node_id => {
         var c = nodes.get(node_id)['color']['background'];
         possible_colours = possible_colours.filter(x => x != c);
     });
@@ -420,7 +435,7 @@ function select() {
         alert('Node cannot be coloured: no colours left!');
         return;
     }
-    
+
     var colour = possible_colours[0];
 
     node['color']['background'] = colour;
@@ -457,12 +472,12 @@ function coalesceBriggs() {
         //      - the resulting node ab must have < K
         //        neighbours of degree >= K
 
-        if (interfere(edges, node_a_id, node_b_id)) {
+        if (interfere(nodes, edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that interfere!');
             return false;
         }
 
-        if (!areMoveRelated(edges, node_a_id, node_b_id)) {
+        if (!areMoveRelated(nodes, edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that are not move-related!');
             return false;
         }
@@ -479,10 +494,10 @@ function coalesceBriggs() {
 
         var num_significant_neighbours = 0;
 
-        var neighbour_ids = getNeighbourIds(new_edges, coalesced_node_id);
+        var neighbour_ids = getNeighbourIds(new_nodes, new_edges, coalesced_node_id);
 
         neighbour_ids.forEach((neighbour_id) => {
-            if (getDegree(new_edges, neighbour_id) >= getK()) {
+            if (getDegree(new_nodes, new_edges, neighbour_id) >= getK()) {
                 num_significant_neighbours++;
             }
         });
@@ -506,23 +521,23 @@ function coalesceGeorge() {
         //          a) be a neighbour of b, OR
         //          b) have degree < K
         //          (or with a and b reversed)
-        if (interfere(edges, node_a_id, node_b_id)) {
+        if (interfere(nodes, edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that interfere!');
             return false;
         }
 
-        if (!areMoveRelated(edges, node_a_id, node_b_id)) {
+        if (!areMoveRelated(nodes, edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that are not move-related!');
             return false;
         }
 
         // Helper function for George
         var george_criterion = (node_a_id, node_b_id) => {
-            var neighbours_a = getNeighbourIds(edges, node_a_id);
-            var neighbours_b = getNeighbourIds(edges, node_b_id);
+            var neighbours_a = getNeighbourIds(nodes, edges, node_a_id);
+            var neighbours_b = getNeighbourIds(nodes, edges, node_b_id);
 
             return neighbours_a.every(t => {
-                return neighbours_b.includes(t) || getDegree(edges, t) < getK();
+                return neighbours_b.includes(t) || getDegree(nodes, edges, t) < getK();
             });
         };
 
