@@ -173,6 +173,144 @@ function deleteSelected() {
 }
 
 /**********************************************************
+ * Helper functions
+ *********************************************************/
+
+/**
+ * Gets the neighbours of the node with the given ID. The move_edges parameter determines whether to follow only interference, or only move-related edges.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_id The ID of the node.
+ * @param {boolean} move_edges If true, follow only move-related edges; if false (default), follow only interference edges.
+ * @returns An Array containing the IDs of the neighbouring nodes.
+ */
+function getNeighbourIds(edges, node_id, move_edges = false) {
+    var neighbour_ids = [];
+
+    edges.forEach(edge => {
+        // Edge type must match.
+        if (edge['dashes'] != move_edges) {
+            return;
+        }
+
+        if (edge['from'] == node_id) {
+            neighbour_ids.push(edge['to']);
+        }
+        if (edge['to'] == node_id) {
+            neighbour_ids.push(edge['from']);
+        }
+    });
+
+    return neighbour_ids;
+}
+
+/**
+ * Gets the degree of the node with the given ID, i.e. the number of nodes that are connected to it via interference edges.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_id The ID of the node.
+ * @returns The degree of the given node.
+ */
+function getDegree(edges, node_id) {
+    return getNeighbourIds(edges, node_id).length;
+}
+
+/**
+ * Checks whether two nodes are move related, i.e. are connected by a move-related edge.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_1_id The ID of the first node.
+ * @param {string} node_2_id The ID of the second node.
+ * @returns True iff the two nodes are move related.
+ */
+function areMoveRelated(edges, node_1_id, node_2_id) {
+    return getNeighbourIds(edges, node_1_id, true).includes(node_2_id);
+}
+
+/**
+ * Checks whether two nodes interfere, i.e. are connected by an interference edge.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_1_id The ID of the first node.
+ * @param {string} node_2_id The ID of the second node.
+ * @returns True iff the two nodes interfere.
+ */
+function interfere(edges, node_1_id, node_2_id) {
+    return getNeighbourIds(edges, node_1_id, false).includes(node_2_id);
+}
+
+/**
+ * Merges two nodes in a graph.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_id_1 The ID of the first node to merge.
+ * @param {string} node_id_2 The ID of the second node to merge.
+ * @returns The ID of the merged node.
+ */
+function mergeNodes(nodes, edges, node_id_1, node_id_2) {
+    // Get the selected nodes
+    var node1 = nodes.get(node_id_1);
+    var node2 = nodes.get(node_id_2);
+
+    // First, update the label of the first node
+    // Sort new label text (e.g. bca --> abc)
+    var new_label = node1['label'] + node2['label'];
+    new_label = new_label.split('').sort().join('');
+    node1['label'] = new_label;
+
+    // Add all edges from node2 to node1 as well
+    // First, iterate over all neighbours of node2
+    edges.forEach(function (value) {
+        // Get the neighbour of node2
+        var neighbour = null;
+
+        if (value['from'] == node_id_2 && value['to'] != node_id_1) {
+            neighbour = nodes.get(value['to']);
+        } else if (value['to'] == node_id_2 && value['from'] != node_id_1) {
+            neighbour = nodes.get(value['from']);
+        }
+
+        if (neighbour == null)
+            return;
+
+        // Now, iterate over all edges around node1
+        var found = false;
+
+        edges.forEach(function (edge) {
+            // Is this edge the one we are looking for?
+            if ((edge['from'] == neighbour['id'] && edge['to'] == node1['id']) ||
+                (edge['from'] == node1['id'] && edge['to'] == neighbour['id'])) {
+                // Yes, so merge them
+                edge['dashes'] = edge['dashes'] && value['dashes'];
+                edges.update(edge);
+
+                found = true;
+            }
+        });
+
+        // If we haven't found an edge, we have to create a new one
+        if (!found) {
+            edges.add({ 'from': node1['id'], 'to': neighbour['id'], 'dashes': value['dashes'] });
+        }
+    });
+
+    // Propagate changes to node 1
+    nodes.update(node1);
+
+    // Delete node 2
+    nodes.remove(node2);
+
+    // Delete any edges connected to node 2
+    var edges_to_delete = [];
+
+    edges.forEach(edge => {
+        if ((edge['from'] == node_id_2) || (edge['to'] == node_id_2)) {
+            edges_to_delete.push(edge);
+        }
+    });
+    edges.remove(edges_to_delete);
+
+    // Return ID of merged node
+    return node_id_1;
+}
+
+/**********************************************************
  * Register allocation algorithm actions
  *********************************************************/
 
@@ -305,73 +443,6 @@ function select() {
     nodes.update(node);
 }
 
-function mergeNodes(nodes, edges, node_id_1, node_id_2) {
-    // Get the selected nodes
-    var node1 = nodes.get(node_id_1);
-    var node2 = nodes.get(node_id_2);
-
-    // First, update the label of the first node
-    // Sort new label text (e.g. bca --> abc)
-    var new_label = node1['label'] + node2['label'];
-    new_label = new_label.split('').sort().join('');
-    node1['label'] = new_label;
-
-    // Add all edges from node2 to node1 as well
-    // First, iterate over all neighbours of node2
-    edges.forEach(function (value) {
-        // Get the neighbour of node2
-        var neighbour = null;
-
-        if (value['from'] == node_id_2 && value['to'] != node_id_1) {
-            neighbour = nodes.get(value['to']);
-        } else if (value['to'] == node_id_2 && value['from'] != node_id_1) {
-            neighbour = nodes.get(value['from']);
-        }
-
-        if (neighbour == null)
-            return;
-
-        // Now, iterate over all edges around node1
-        var found = false;
-
-        edges.forEach(function (edge) {
-            // Is this edge the one we are looking for?
-            if ((edge['from'] == neighbour['id'] && edge['to'] == node1['id']) ||
-                (edge['from'] == node1['id'] && edge['to'] == neighbour['id'])) {
-                // Yes, so merge them
-                edge['dashes'] = edge['dashes'] && value['dashes'];
-                edges.update(edge);
-
-                found = true;
-            }
-        });
-
-        // If we haven't found an edge, we have to create a new one
-        if (!found) {
-            edges.add({ 'from': node1['id'], 'to': neighbour['id'], 'dashes': value['dashes'] });
-        }
-    });
-
-    // Propagate changes to node 1
-    nodes.update(node1);
-
-    // Delete node 2
-    nodes.remove(node2);
-
-    // Delete any edges connected to node 2
-    var edges_to_delete = [];
-
-    edges.forEach(edge => {
-        if ((edge['from'] == node_id_2) || (edge['to'] == node_id_2)) {
-            edges_to_delete.push(edge);
-        }
-    });
-    edges.remove(edges_to_delete);
-
-    // Return ID of merged node
-    return node_id_1;
-}
-
 function coalesceHelper(condition_callback) {
     var selected_node_ids = network.getSelectedNodes();
 
@@ -389,44 +460,6 @@ function coalesceHelper(condition_callback) {
     }
 
     mergeNodes(nodes, edges, selected_node_ids[0], selected_node_ids[1]);
-}
-
-// Get the neighbours of a node with given ID.
-// The optional move_edges parameter determines whether to follow
-// interference or move-related edges.
-function getNeighbourIds(edges, node_id, move_edges = false) {
-    var neighbour_ids = [];
-
-    edges.forEach(edge => {
-        // Edge type must match.
-        if (edge['dashes'] != move_edges) {
-            return;
-        }
-
-        if (edge['from'] == node_id) {
-            neighbour_ids.push(edge['to']);
-        }
-        if (edge['to'] == node_id) {
-            neighbour_ids.push(edge['from']);
-        }
-    });
-
-    return neighbour_ids;
-}
-
-// Get the degree of a node with given ID
-function getDegree(edges, node_id) {
-    return getNeighbourIds(edges, node_id).length;
-}
-
-// Returns true iff two nodes are move-related.
-function areMoveRelated(edges, node_1_id, node_2_id) {
-    return getNeighbourIds(edges, node_1_id, true).includes(node_2_id);
-}
-
-// Returns true iff two nodes interfere.
-function interfere(edges, node_1_id, node_2_id) {
-    return getNeighbourIds(edges, node_1_id, false).includes(node_2_id);
 }
 
 function coalesceBriggs() {
