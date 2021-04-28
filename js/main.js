@@ -204,6 +204,16 @@ function getNeighbourIds(edges, node_id, move_edges = false) {
 }
 
 /**
+ * Checks whether a node is move related, i.e. has a neighbour connect to it via a move edge.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_id The ID of the node.
+ * @returns True iff the given node is move related.
+ */
+function isMoveRelated(edges, node_id) {
+    return getNeighbourIds(edges, node_id, true).length > 0;
+}
+
+/**
  * Gets the degree of the node with the given ID, i.e. the number of nodes that are connected to it via interference edges.
  * @param {vis.DataSet} edges The DataSet containing the edges.
  * @param {string} node_id The ID of the node.
@@ -346,24 +356,16 @@ function simplify() {
         // 1) <K neighbours
         // AND
         // 2) non-MOVE related
-        var num_neighbours = 0;
-        var is_move_related = false;
 
-        network.getConnectedEdges(selected_node_id).forEach(edge_id => {
-            if (edges.get(edge_id)['dashes']) {
-                is_move_related = true;
-            } else {
-                num_neighbours++;
-            }
-        });
-
-        if (is_move_related) {
+        if (isMoveRelated(edges, selected_node_id)) {
             setInstructionLabel('Cannot simplify move-related nodes!');
             return false;
         }
 
-        if (num_neighbours >= getK()) {
-            setInstructionLabel(`Cannot simplify node of significant degree: ${num_neighbours} >= K!`);
+        var degree = getDegree(edges, selected_node_id);
+
+        if (degree >= getK()) {
+            setInstructionLabel(`Cannot simplify node of significant degree: ${degree} >= K!`);
             return false;
         }
 
@@ -377,24 +379,16 @@ function candidateSpill() {
         // 1) >= K neighbours
         // AND
         // 2) non-MOVE related
-        var num_neighbours = 0;
-        var is_move_related = false;
 
-        network.getConnectedEdges(selected_node_id).forEach(edge_id => {
-            if (edges.get(edge_id)['dashes']) {
-                is_move_related = true;
-            } else {
-                num_neighbours++;
-            }
-        });
-
-        if (is_move_related) {
+        if (isMoveRelated(edges, selected_node_id)) {
             setInstructionLabel('Cannot spill move-related nodes!');
             return false;
         }
 
-        if (num_neighbours < getK()) {
-            setInstructionLabel(`Cannot spill node of insignificant degree: ${num_neighbours} < K, you should simplify instead!`);
+        var degree = getDegree(edges, selected_node_id);
+
+        if (degree < getK()) {
+            setInstructionLabel(`Cannot spill node of insignificant degree: ${degree} < K, you should simplify instead!`);
             return false;
         }
 
@@ -417,24 +411,16 @@ function select() {
     var possible_colours = colours.map(x => x);
     possible_colours = possible_colours.slice(0, getK());
 
-    edges.forEach(function (value) {
-        if (value['from'] == added_node_ids[0]) {
-            n = nodes.get(value['to']);
-            if (n != null)
-                possible_colours = possible_colours.filter(x => x != n['color']['background']);
-        }
-        if (value['to'] == added_node_ids[0]) {
-            n = nodes.get(value['from']);
-            if (n != null)
-                possible_colours = possible_colours.filter(x => x != n['color']['background']);
-        }
+    getNeighbourIds(edges, added_node_ids[0]).forEach(node_id => {
+        var c = nodes.get(node_id)['color']['background'];
+        possible_colours = possible_colours.filter(x => x != c);
     });
 
     if (possible_colours.length == 0) {
         alert('Node cannot be coloured: no colours left!');
         return;
     }
-
+    
     var colour = possible_colours[0];
 
     node['color']['background'] = colour;
