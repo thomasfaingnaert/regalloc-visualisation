@@ -384,6 +384,7 @@ function simplify() {
             return false;
         }
 
+        setInstructionLabel(`Simplified node of insignificant degree: ${degree} < K.`);
         return true;
     });
 }
@@ -407,6 +408,7 @@ function candidateSpill() {
             return false;
         }
 
+        setInstructionLabel(`Spilled node of significant degree: ${degree} >= K.`);
         return true;
     });
 }
@@ -492,21 +494,22 @@ function coalesceBriggs() {
         // Merge a and b in this new graph
         var coalesced_node_id = mergeNodes(new_nodes, new_edges, node_a_id, node_b_id);
 
-        var num_significant_neighbours = 0;
-
         var neighbour_ids = getNeighbourIds(new_nodes, new_edges, coalesced_node_id);
+        var significant_neighbours = [];
 
         neighbour_ids.forEach((neighbour_id) => {
             if (getDegree(new_nodes, new_edges, neighbour_id) >= getK()) {
-                num_significant_neighbours++;
+                var label = new_nodes.get(neighbour_id)['label'];
+                significant_neighbours.push(label);
             }
         });
 
-        if (num_significant_neighbours >= getK()) {
-            setInstructionLabel(`Cannot coalesce according to the Briggs heuristic: coalesced node will have ${num_significant_neighbours} >= K neighbours of significant degree!`);
+        if (significant_neighbours.length >= getK()) {
+            setInstructionLabel(`Cannot coalesce according to the Briggs heuristic: coalesced node will have ${significant_neighbours.length} >= K neighbours of significant degree (${significant_neighbours})!`);
             return false;
         }
 
+        setInstructionLabel(`Coalesced nodes using Briggs: resulting node has ${significant_neighbours.length} < K neighbours of significant degree (${significant_neighbours}).`);
         return true;
     });
 }
@@ -546,6 +549,7 @@ function coalesceGeorge() {
             return false;
         }
 
+        setInstructionLabel('Coalesced nodes using the George heuristic.');
         return true;
     });
 }
