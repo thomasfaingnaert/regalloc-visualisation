@@ -158,7 +158,8 @@ function updateNodeStackLabel() {
     document.getElementById('nodeStackLabel').innerHTML = 'Node stack: ' + content;
 }
 
-function simplify() {
+// Helper function for simplify and candidate spills.
+function simplifyHelper(condition_callback) {
     var selected_node_ids = network.getSelectedNodes();
 
     // Remove deleted nodes
@@ -166,6 +167,11 @@ function simplify() {
 
     if (selected_node_ids.length != 1) {
         setInstructionLabel('You need to select exactly one node to simplify!');
+        return;
+    }
+
+    // Check condition
+    if (!condition_callback(selected_node_ids[0])) {
         return;
     }
 
@@ -178,8 +184,66 @@ function simplify() {
     nodes.remove(selected_node_ids[0]);
 }
 
+function simplify() {
+    simplifyHelper((selected_node_id) => {
+        // Conditions:
+        // 1) <K neighbours
+        // AND
+        // 2) non-MOVE related
+        var num_neighbours = 0;
+        var is_move_related = false;
+
+        network.getConnectedEdges(selected_node_id).forEach(edge_id => {
+            if (edges.get(edge_id)['dashes']) {
+                is_move_related = true;
+            } else {
+                num_neighbours++;
+            }
+        });
+
+        if (is_move_related) {
+            setInstructionLabel('Cannot simplify move-related nodes!');
+            return false;
+        }
+
+        if (num_neighbours >= getK()) {
+            setInstructionLabel(`Cannot simplify node of significant degree: ${num_neighbours} >= K!`);
+            return false;
+        }
+
+        return true;
+    });
+}
+
 function candidateSpill() {
-    simplify();
+    simplifyHelper((selected_node_id) => {
+        // Conditions:
+        // 1) >= K neighbours
+        // AND
+        // 2) non-MOVE related
+        var num_neighbours = 0;
+        var is_move_related = false;
+
+        network.getConnectedEdges(selected_node_id).forEach(edge_id => {
+            if (edges.get(edge_id)['dashes']) {
+                is_move_related = true;
+            } else {
+                num_neighbours++;
+            }
+        });
+
+        if (is_move_related) {
+            setInstructionLabel('Cannot spill move-related nodes!');
+            return false;
+        }
+
+        if (num_neighbours >= getK()) {
+            setInstructionLabel(`Cannot spill node of insignificant degree: ${num_neighbours} < K, you should simplify instead!`);
+            return false;
+        }
+
+        return true;
+    });
 }
 
 function getK() {
@@ -231,20 +295,10 @@ function select() {
     nodes.update(node);
 }
 
-function coalesce() {
-    var selected_node_ids = network.getSelectedNodes();
-
-    // Remove deleted nodes
-    var selected_node_ids = selected_node_ids.filter(id => nodes.get(id) != null);
-
-    if (selected_node_ids.length != 2) {
-        setInstructionLabel('You need to select exactly two nodes to coalesce!');
-        return;
-    }
-
+function mergeNodes(nodes, edges, node_id_1, node_id_2) {
     // Get the selected nodes
-    var node1 = nodes.get(selected_node_ids[0]);
-    var node2 = nodes.get(selected_node_ids[1]);
+    var node1 = nodes.get(node_id_1);
+    var node2 = nodes.get(node_id_2);
 
     // First, update the label of the first node
     // Sort new label text (e.g. bca --> abc)
@@ -258,9 +312,9 @@ function coalesce() {
         // Get the neighbour of node2
         var neighbour = null;
 
-        if (value['from'] == selected_node_ids[1] && value['to'] != selected_node_ids[0]) {
+        if (value['from'] == node_id_2 && value['to'] != node_id_1) {
             neighbour = nodes.get(value['to']);
-        } else if (value['to'] == selected_node_ids[1] && value['from'] != selected_node_ids[0]) {
+        } else if (value['to'] == node_id_2 && value['from'] != node_id_1) {
             neighbour = nodes.get(value['from']);
         }
 
@@ -293,14 +347,163 @@ function coalesce() {
 
     // Delete node 2
     nodes.remove(node2);
+
+    // Delete any edges connected to node 2
+    var edges_to_delete = [];
+
+    edges.forEach(edge => {
+        if ((edge['from'] == node_id_2) || (edge['to'] == node_id_2)) {
+            edges_to_delete.push(edge);
+        }
+    });
+    edges.remove(edges_to_delete);
+
+    // Return ID of merged node
+    return node_id_1;
+}
+
+function coalesceHelper(condition_callback) {
+    var selected_node_ids = network.getSelectedNodes();
+
+    // Remove deleted nodes
+    var selected_node_ids = selected_node_ids.filter(id => nodes.get(id) != null);
+
+    if (selected_node_ids.length != 2) {
+        setInstructionLabel('You need to select exactly two nodes to coalesce!');
+        return;
+    }
+
+    // Check condition
+    if (!condition_callback(selected_node_ids[0], selected_node_ids[1])) {
+        return false;
+    }
+
+    mergeNodes(nodes, edges, selected_node_ids[0], selected_node_ids[1]);
+}
+
+// Get the neighbours of a node with given ID.
+// The optional move_edges parameter determines whether to follow
+// interference or move-related edges.
+function getNeighbourIds(edges, node_id, move_edges = false) {
+    var neighbour_ids = [];
+
+    edges.forEach(edge => {
+        // Edge type must match.
+        if (edge['dashes'] != move_edges) {
+            return;
+        }
+
+        if (edge['from'] == node_id) {
+            neighbour_ids.push(edge['to']);
+        }
+        if (edge['to'] == node_id) {
+            neighbour_ids.push(edge['from']);
+        }
+    });
+
+    return neighbour_ids;
+}
+
+// Get the degree of a node with given ID
+function getDegree(edges, node_id) {
+    return getNeighbourIds(edges, node_id).length;
+}
+
+// Returns true iff two nodes are move-related.
+function areMoveRelated(edges, node_1_id, node_2_id) {
+    return getNeighbourIds(edges, node_1_id, true).includes(node_2_id);
+}
+
+// Returns true iff two nodes interfere.
+function interfere(edges, node_1_id, node_2_id) {
+    return getNeighbourIds(edges, node_1_id, false).includes(node_2_id);
 }
 
 function coalesceBriggs() {
-    coalesce();
+    coalesceHelper((node_a_id, node_b_id) => {
+        // Conditions:
+        // 1) nodes MUST NOT interfere
+        // 2) nodes MUST be move-related
+        // 3) Brigg's criterion must hold:
+        //      - the resulting node ab must have < K
+        //        neighbours of degree >= K
+
+        if (interfere(edges, node_a_id, node_b_id)) {
+            setInstructionLabel('Cannot coalesce nodes that interfere!');
+            return false;
+        }
+
+        if (!areMoveRelated(edges, node_1_id, node_2_id)) {
+            setInstructionLabel('Cannot coalesce nodes that are not move-related!');
+            return false;
+        }
+
+        // Create deep copy of graph
+        var new_nodes = new vis.DataSet();
+        var new_edges = new vis.DataSet();
+
+        nodes.forEach(node => { new_nodes.add({...node}); });
+        edges.forEach(edge => { new_edges.add({...edge}); });
+
+        // Merge a and b in this new graph
+        var coalesced_node_id = mergeNodes(new_nodes, new_edges, node_a_id, node_b_id);
+
+        var num_significant_neighbours = 0;
+
+        var neighbour_ids = getNeighbourIds(new_edges, coalesced_node_id);
+
+        neighbour_ids.forEach((neighbour_id) => {
+            if (getDegree(new_edges, neighbour_id) >= getK()) {
+                num_significant_neighbours++;
+            }
+        });
+
+        if (num_significant_neighbours >= getK()) {
+            setInstructionLabel(`Cannot coalesce according to the Briggs heuristic: coalesced node will have ${num_significant_neighbours} >= K neighbours of significant degree!`);
+            return false;
+        }
+
+        return true;
+    });
 }
 
 function coalesceGeorge() {
-    coalesce();
+    coalesceHelper((node_a_id, node_b_id) => {
+        // Conditions:
+        // 1) nodes MUST NOT interfere
+        // 2) nodes MUST be move-related
+        // 3) George's criterion must hold:
+        //      - every neighbour t of a must either:
+        //          a) be a neighbour of b, OR
+        //          b) have degree < K
+        //          (or with a and b reversed)
+        if (interfere(edges, node_a_id, node_b_id)) {
+            setInstructionLabel('Cannot coalesce nodes that interfere!');
+            return false;
+        }
+
+        if (!areMoveRelated(edges, node_1_id, node_2_id)) {
+            setInstructionLabel('Cannot coalesce nodes that are not move-related!');
+            return false;
+        }
+
+        // Helper function for George
+        var george_criterion = (node_a_id, node_b_id) => {
+            var neighbours_a = getNeighbourIds(edges, node_a_id);
+            var neighbours_b = getNeighbourIds(edges, node_b_id);
+
+            return neighbours_a.every(t => {
+                return neighbours_b.includes(t) || getDegree(edges, t) < getK();
+            });
+        };
+
+        if (!george_criterion(node_a_id, node_b_id) && !george_criterion(node_b_id, node_a_id)) {
+            setInstructionLabel('Cannot coalesce according to the George heuristic!');
+            return false;
+        }
+
+        return true;
+    });
 }
 
 function exportNetwork() {
