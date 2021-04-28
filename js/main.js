@@ -539,9 +539,24 @@ function coalesceGeorge() {
             var neighbours_a = getNeighbourIds(nodes, edges, node_a_id);
             var neighbours_b = getNeighbourIds(nodes, edges, node_b_id);
 
-            return neighbours_a.every(t => {
-                return neighbours_b.includes(t) || getDegree(nodes, edges, t) < getK();
-            });
+            // Every neighbour t of a must either:
+            // a) be a neighbour of b, or
+            // b) have degree < K
+
+            // Equivalently, we can say that:
+            // Every significant-degree neighbour of a
+            // must be a neighbour of b.
+            var significant_degree_neighbours = neighbours_a.filter(t => getDegree(nodes, edges, t) >= getK());
+
+            var are_neighbours_of_b = significant_degree_neighbours.every(t => neighbours_b.includes(t));
+
+            if (are_neighbours_of_b) {
+                var get_label = (id) => nodes.get(id)['label'];
+
+                setInstructionLabel(`Can coalesce according to George: all significant-degree neighbours of ${get_label(node_a_id)} (${significant_degree_neighbours.map(get_label)}) are also neighbours of ${get_label(node_b_id)}.`);
+            }
+
+            return are_neighbours_of_b;
         };
 
         if (!george_criterion(node_a_id, node_b_id) && !george_criterion(node_b_id, node_a_id)) {
@@ -549,7 +564,6 @@ function coalesceGeorge() {
             return false;
         }
 
-        setInstructionLabel('Coalesced nodes using the George heuristic.');
         return true;
     });
 }
