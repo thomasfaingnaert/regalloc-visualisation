@@ -442,8 +442,8 @@ function coalesceBriggs() {
         var new_nodes = new vis.DataSet();
         var new_edges = new vis.DataSet();
 
-        nodes.forEach(node => { new_nodes.add({...node}); });
-        edges.forEach(edge => { new_edges.add({...edge}); });
+        nodes.forEach(node => { new_nodes.add({ ...node }); });
+        edges.forEach(edge => { new_edges.add({ ...edge }); });
 
         // Merge a and b in this new graph
         var coalesced_node_id = mergeNodes(new_nodes, new_edges, node_a_id, node_b_id);
