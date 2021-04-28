@@ -596,6 +596,20 @@ function importNetwork() {
     setK(inputData['K']);
 }
 
+function importExample(example) {
+    $.getJSON(`examples/${example}.json`, function (inputData) {
+        importNodes(nodes, inputData['nodes']);
+        importEdges(edges, inputData['edges']);
+        setK(inputData['K']);
+    });
+}
+
+// Check if we need to load an example
+var example = new URLSearchParams(window.location.search).get('example');
+if (example != null) {
+    importExample(example);
+}
+
 /**********************************************************
  * General settings (number of registers, physics)
  *********************************************************/
