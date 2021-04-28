@@ -1,3 +1,13 @@
+/**********************************************************
+ * Module imports
+ *********************************************************/
+
+import { exportNodes, exportEdges, importNodes, importEdges } from "./export.js";
+
+/**********************************************************
+ * Global variables, and vis.js network initialisation
+ *********************************************************/
+
 var colours = ['lightblue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'cyan'];
 
 var node_stack = []
@@ -8,10 +18,18 @@ var nodes = new vis.DataSet([]);
 var edges = new vis.DataSet([]);
 
 var container = document.getElementById("network");
+
 var data = {
     nodes: nodes,
     edges: edges
 };
+
+var cur_char_code = 97; // a
+
+function get_next_free_node_label() {
+    return String.fromCharCode(cur_char_code++);
+}
+
 var options = {
     manipulation: {
         enabled: false,
@@ -53,28 +71,56 @@ var options = {
         }
     }
 };
+
 var network = new vis.Network(container, data, options);
 
-function setPhysics() {
-    options.physics.enabled = $('#physicsCheckBox').is(':checked');
-    network.setOptions(options);
-}
-
-var cur_char_code = 97; // a
-
-function get_next_free_node_label() {
-    return String.fromCharCode(cur_char_code++);
-}
-
-var cur_precoloured_label = 1;
-
-function get_next_free_precoloured_node_label() {
-    return (cur_precoloured_label++).toString();
-}
+/**********************************************************
+ * Update UI
+ *********************************************************/
 
 function setInstructionLabel(content) {
     document.getElementById('instructionsLabel').innerHTML = content;
 }
+
+function updateNodeStackLabel() {
+    var content = node_stack.map(node => node['label']).join(', ');
+    document.getElementById('nodeStackLabel').innerHTML = 'Node stack: ' + content;
+}
+
+/**********************************************************
+ * Keyboard shortcuts
+ *********************************************************/
+
+document.onkeydown = function (event) {
+    event = event || window.event;
+
+    if (event.key == 'n')
+        addNode();
+    else if (event.key == 'p')
+        addPrecolouredNodes();
+    else if (event.key == 'i')
+        addInterferenceEdge();
+    else if (event.key == 'm')
+        addMoveEdge();
+    else if (event.key == 'x')
+        exitEditMode();
+    else if (event.key == 'd')
+        deleteSelected();
+    else if (event.key == 's')
+        simplify();
+    else if (event.key == 'c')
+        candidateSpill();
+    else if (event.key == 'l')
+        select();
+    else if (event.key == 'b')
+        coalesceBriggs();
+    else if (event.key == 'g')
+        coalesceGeorge();
+}
+
+/**********************************************************
+ * Graph editing: add/delete edges/nodes
+ *********************************************************/
 
 function addNode() {
     setInstructionLabel('Click in an empty space to place a new node.');
@@ -126,37 +172,9 @@ function deleteSelected() {
     network.deleteSelected();
 }
 
-document.onkeydown = function (event) {
-    event = event || window.event;
-
-    if (event.key == 'n')
-        addNode();
-    else if (event.key == 'p')
-        addPrecolouredNodes();
-    else if (event.key == 'i')
-        addInterferenceEdge();
-    else if (event.key == 'm')
-        addMoveEdge();
-    else if (event.key == 'x')
-        exitEditMode();
-    else if (event.key == 'd')
-        deleteSelected();
-    else if (event.key == 's')
-        simplify();
-    else if (event.key == 'c')
-        candidateSpill();
-    else if (event.key == 'l')
-        select();
-    else if (event.key == 'b')
-        coalesceBriggs();
-    else if (event.key == 'g')
-        coalesceGeorge();
-}
-
-function updateNodeStackLabel() {
-    var content = node_stack.map(node => node['label']).join(', ');
-    document.getElementById('nodeStackLabel').innerHTML = 'Node stack: ' + content;
-}
+/**********************************************************
+ * Register allocation algorithm actions
+ *********************************************************/
 
 // Helper function for simplify and candidate spills.
 function simplifyHelper(condition_callback) {
@@ -244,14 +262,6 @@ function candidateSpill() {
 
         return true;
     });
-}
-
-function getK() {
-    return $('#numRegisters').val();
-}
-
-function setK(value) {
-    $('#numRegisters').val(parseInt(value));
 }
 
 function select() {
@@ -433,7 +443,7 @@ function coalesceBriggs() {
             return false;
         }
 
-        if (!areMoveRelated(edges, node_1_id, node_2_id)) {
+        if (!areMoveRelated(edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that are not move-related!');
             return false;
         }
@@ -482,7 +492,7 @@ function coalesceGeorge() {
             return false;
         }
 
-        if (!areMoveRelated(edges, node_1_id, node_2_id)) {
+        if (!areMoveRelated(edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that are not move-related!');
             return false;
         }
@@ -506,36 +516,19 @@ function coalesceGeorge() {
     });
 }
 
+/**********************************************************
+ * Network import and export
+ *********************************************************/
+
 function exportNetwork() {
     var exportValue = JSON.stringify({
-        nodes: exportNodes(),
-        edges: exportEdges(),
+        nodes: exportNodes(nodes, network),
+        edges: exportEdges(edges),
         K: getK()
     }, undefined, 2);
 
     $('#exportJSONTextArea').val(exportValue);
     $('#exportModal').modal();
-}
-
-function exportNodes() {
-    return nodes.getIds().map(nodeid => {
-        return {
-            id: nodeid,
-            label: nodes.get(nodeid).label,
-            x: network.getPosition(nodeid).x,
-            y: network.getPosition(nodeid).y
-        };
-    });
-}
-
-function exportEdges() {
-    return edges.getIds().map(edgeid => {
-        return {
-            from: edges.get(edgeid).from,
-            to: edges.get(edgeid).to,
-            dashes: edges.get(edgeid).dashes
-        };
-    })
 }
 
 function showImportDialog() {
@@ -544,37 +537,46 @@ function showImportDialog() {
 
 function importNetwork() {
     var importValue = $('#importJSONTextArea').val();
-
-    nodes.clear();
-    edges.clear();
-
     var inputData = JSON.parse(importValue);
 
-    importNodes(inputData['nodes']);
-    importEdges(inputData['edges']);
+    importNodes(nodes, inputData['nodes']);
+    importEdges(edges, inputData['edges']);
     setK(inputData['K']);
 }
 
-function importNodes(nodeData) {
-    nodeData.forEach(function (node) {
-        nodes.add({
-            id: node.id,
-            label: node.label,
-            x: node.x,
-            y: node.y,
-            color: {
-                background: 'white'
-            }
-        });
-    });
+/**********************************************************
+ * General settings (number of registers, physics)
+ *********************************************************/
+
+function getK() {
+    return $('#numRegisters').val();
 }
 
-function importEdges(edgeData) {
-    edgeData.forEach(function (edge) {
-        edges.add({
-            from: edge.from,
-            to: edge.to,
-            dashes: edge.dashes
-        })
-    });
+function setK(value) {
+    $('#numRegisters').val(parseInt(value));
 }
+
+function setPhysics() {
+    options.physics.enabled = $('#physicsCheckBox').is(':checked');
+    network.setOptions(options);
+}
+
+/**********************************************************
+ * Event listener registration
+ *********************************************************/
+
+document.querySelector('#addNodeButton').addEventListener('click', addNode);
+document.querySelector('#addPrecolouredNodesButton').addEventListener('click', addPrecolouredNodes);
+document.querySelector('#addInterferenceEdgeButton').addEventListener('click', addInterferenceEdge);
+document.querySelector('#addMoveEdgeButton').addEventListener('click', addMoveEdge);
+document.querySelector('#exitEditModeButton').addEventListener('click', exitEditMode);
+document.querySelector('#deleteSelectedButton').addEventListener('click', deleteSelected);
+document.querySelector('#simplifyButton').addEventListener('click', simplify);
+document.querySelector('#coalesceBriggsButton').addEventListener('click', coalesceBriggs);
+document.querySelector('#coalesceGeorgeButton').addEventListener('click', coalesceGeorge);
+document.querySelector('#candidateSpillButton').addEventListener('click', candidateSpill);
+document.querySelector('#selectButton').addEventListener('click', select);
+document.querySelector('#showImportDialogButton').addEventListener('click', showImportDialog);
+document.querySelector('#exportNetworkButton').addEventListener('click', exportNetwork);
+document.querySelector('#importNetworkButton').addEventListener('click', importNetwork);
+document.querySelector('#physicsCheckBox').addEventListener('click', setPhysics);
