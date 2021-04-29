@@ -283,24 +283,23 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
     // First, iterate over all neighbours of node2
     edges.forEach(function (value) {
         // Get the neighbour of node2
-        var neighbour = null;
+        var neighbour_id;
 
         if (value['from'] == node_id_2 && value['to'] != node_id_1) {
-            neighbour = nodes.get(value['to']);
+            neighbour_id = value['to'];
         } else if (value['to'] == node_id_2 && value['from'] != node_id_1) {
-            neighbour = nodes.get(value['from']);
-        }
-
-        if (neighbour == null)
+            neighbour_id = value['from'];
+        } else {
             return;
+        }
 
         // Now, iterate over all edges around node1
         var found = false;
 
         edges.forEach(function (edge) {
             // Is this edge the one we are looking for?
-            if ((edge['from'] == neighbour['id'] && edge['to'] == node1['id']) ||
-                (edge['from'] == node1['id'] && edge['to'] == neighbour['id'])) {
+            if ((edge['from'] == neighbour_id && edge['to'] == node1['id']) ||
+                (edge['from'] == node1['id'] && edge['to'] == neighbour_id)) {
                 // Yes, so merge them
                 edge['dashes'] = edge['dashes'] && value['dashes'];
                 edges.update(edge);
@@ -311,7 +310,7 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
 
         // If we haven't found an edge, we have to create a new one
         if (!found) {
-            edges.add({ 'from': node1['id'], 'to': neighbour['id'], 'dashes': value['dashes'] });
+            edges.add({ 'from': node1['id'], 'to': neighbour_id, 'dashes': value['dashes'] });
         }
     });
 
