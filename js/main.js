@@ -56,7 +56,7 @@ var options = {
     },
 
     physics: {
-        enabled: false
+        enabled: true
     },
 
     interaction: {
@@ -68,7 +68,8 @@ var options = {
         color: {
             border: 'black',
             background: 'white'
-        }
+        },
+        physics: false
     }
 };
 
@@ -137,13 +138,12 @@ function addPrecolouredNodes() {
         added_node_ids = added_node_ids.concat(nodes.add({
             label: (i + 1).toString(),
             color: {
-                background: 'white'
-            }
+                background: 'white',
+            },
+            x: 100 * Math.cos(2 * Math.PI * i / getK()),
+            y: -100 * Math.sin(2 * Math.PI * i / getK())
         }));
     }
-
-    // Run physics, because otherwise all these nodes overlap
-    network.stabilize();
 
     // Add edges between each pair of nodes
     for (var i = 0; i < added_node_ids.length; ++i) {
@@ -635,7 +635,7 @@ if (example != null) {
 }
 
 /**********************************************************
- * General settings (number of registers, physics)
+ * General settings (i.e. number of registers)
  *********************************************************/
 
 function getK() {
@@ -644,11 +644,6 @@ function getK() {
 
 function setK(value) {
     $('#numRegisters').val(parseInt(value));
-}
-
-function setPhysics() {
-    options.physics.enabled = $('#physicsCheckBox').is(':checked');
-    network.setOptions(options);
 }
 
 /**********************************************************
@@ -670,4 +665,3 @@ document.querySelector('#selectButton').addEventListener('click', select);
 document.querySelector('#showImportDialogButton').addEventListener('click', showImportDialog);
 document.querySelector('#exportNetworkButton').addEventListener('click', exportNetwork);
 document.querySelector('#importNetworkButton').addEventListener('click', importNetwork);
-document.querySelector('#physicsCheckBox').addEventListener('click', setPhysics);
