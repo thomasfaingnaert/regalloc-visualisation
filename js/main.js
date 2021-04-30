@@ -281,40 +281,23 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
     new_label = new_label.split('').sort().join('');
     node1['label'] = new_label;
 
-    // Add all edges from node2 to node1 as well
-    // First, iterate over all neighbours of node2
-    edges.forEach(function (value) {
-        // Get the neighbour of node2
-        var neighbour_id;
-
-        if (value['from'] == node_id_2 && value['to'] != node_id_1) {
-            neighbour_id = value['to'];
-        } else if (value['to'] == node_id_2 && value['from'] != node_id_1) {
-            neighbour_id = value['from'];
-        } else {
-            return;
-        }
-
-        // Now, iterate over all edges around node1
-        var found = false;
-
-        edges.forEach(function (edge) {
-            // Is this edge the one we are looking for?
-            if ((edge['from'] == neighbour_id && edge['to'] == node1['id']) ||
-                (edge['from'] == node1['id'] && edge['to'] == neighbour_id)) {
-                // Yes, so merge them
-                edge['dashes'] = edge['dashes'] && value['dashes'];
-                edges.update(edge);
-
-                found = true;
-            }
+    // Add all interference edges from node2 to node1 as well (except those to node1).
+    var node1_interference_neighbours = getNeighbourIds(nodes, edges, node_id_1, false);
+    getNeighbourIds(nodes, edges, node_id_2, false)
+        .filter(x => !node1_interference_neighbours.includes(x))
+        .filter(x => x != node_id_1)
+        .forEach(neighbour_id => {
+            edges.add({ 'from': node_id_1, 'to': neighbour_id, 'dashes': false });
         });
 
-        // If we haven't found an edge, we have to create a new one
-        if (!found) {
-            edges.add({ 'from': node1['id'], 'to': neighbour_id, 'dashes': value['dashes'] });
-        }
-    });
+    // Add all move edges from node2 to node1 as well (except those to node1).
+    var node1_move_neighbours = getNeighbourIds(nodes, edges, node_id_1, true);
+    getNeighbourIds(nodes, edges, node_id_2, true)
+        .filter(x => !node1_move_neighbours.includes(x))
+        .filter(x => x != node_id_1)
+        .forEach(neighbour_id => {
+            edges.add({ 'from': node_id_1, 'to': neighbour_id, 'dashes': true });
+        });
 
     // Propagate changes to node 1
     nodes.update(node1);
@@ -323,13 +306,7 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
     nodes.remove(node2);
 
     // Delete any edges connected to node 2
-    var edges_to_delete = [];
-
-    edges.forEach(edge => {
-        if ((edge['from'] == node_id_2) || (edge['to'] == node_id_2)) {
-            edges_to_delete.push(edge);
-        }
-    });
+    var edges_to_delete = edges.filter(edge => edge['from'] == node_id_2 || edge['to'] == node_id_2);
     edges.remove(edges_to_delete);
 
     // Return ID of merged node
@@ -402,14 +379,7 @@ function freeze() {
     }
 
     // Remove all move-related edges connected to the selected node
-    var edges_to_delete = [];
-
-    edges.forEach(edge => {
-        if ((edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0])
-            && edge['dashes'] == true) {
-            edges_to_delete.push(edge);
-        }
-    });
+    var edges_to_delete = edges.filter(edge => edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0]);
     edges.remove(edges_to_delete);
 }
 
