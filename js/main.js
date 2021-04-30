@@ -116,6 +116,8 @@ document.onkeydown = function (event) {
         coalesceBriggs();
     else if (event.key == 'g')
         coalesceGeorge();
+    else if (event.key == 'f')
+        freeze();
 }
 
 /**********************************************************
@@ -388,6 +390,29 @@ function simplify() {
     });
 }
 
+function freeze() {
+    var selected_node_ids = network.getSelectedNodes();
+
+    // Remove deleted nodes
+    selected_node_ids = selected_node_ids.filter(id => nodes.get(id) != null);
+
+    if (selected_node_ids.length != 1) {
+        setInstructionLabel('You need to select exactly one node to freeze!');
+        return;
+    }
+
+    // Remove all move-related edges connected to the selected node
+    var edges_to_delete = [];
+
+    edges.forEach(edge => {
+        if ((edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0])
+            && edge['dashes'] == true) {
+            edges_to_delete.push(edge);
+        }
+    });
+    edges.remove(edges_to_delete);
+}
+
 function candidateSpill() {
     simplifyHelper((selected_node_id) => {
         // Conditions:
@@ -639,6 +664,7 @@ document.querySelector('#deleteSelectedButton').addEventListener('click', delete
 document.querySelector('#simplifyButton').addEventListener('click', simplify);
 document.querySelector('#coalesceBriggsButton').addEventListener('click', coalesceBriggs);
 document.querySelector('#coalesceGeorgeButton').addEventListener('click', coalesceGeorge);
+document.querySelector('#freezeButton').addEventListener('click', freeze);
 document.querySelector('#candidateSpillButton').addEventListener('click', candidateSpill);
 document.querySelector('#selectButton').addEventListener('click', select);
 document.querySelector('#showImportDialogButton').addEventListener('click', showImportDialog);
