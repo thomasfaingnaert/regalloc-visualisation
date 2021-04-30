@@ -379,7 +379,7 @@ function freeze() {
     }
 
     // Remove all move-related edges connected to the selected node
-    var edges_to_delete = edges.get({ filter: edge => edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0] });
+    var edges_to_delete = edges.get({ filter: edge => (edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0]) && edge['dashes'] });
     edges.remove(edges_to_delete);
 }
 
