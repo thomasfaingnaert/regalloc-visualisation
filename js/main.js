@@ -313,6 +313,22 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
     return node_id_1;
 }
 
+/**
+ * Checks whether a node is precoloured or not, i.e. has a number in its label.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_id The ID of the node.
+ * @returns True iff the node is precoloured.
+ */
+function isPreColoured(nodes, edges, node_id) {
+    var node = nodes.get(node_id);
+
+    if (node == null)
+        return false;
+    
+    return node['label'].split('').some(c => (c >= '0') && (c <= '9'));
+}
+
 /**********************************************************
  * Register allocation algorithm actions
  *********************************************************/
@@ -349,6 +365,13 @@ function simplify() {
         // 1) <K neighbours
         // AND
         // 2) non-MOVE related
+        // AND
+        // 3) not pre-coloured
+
+        if (isPreColoured(nodes, edges, selected_node_id)) {
+            setInstructionLabel('Cannot simplify pre-coloured nodes!');
+            return false;
+        }
 
         if (isMoveRelated(nodes, edges, selected_node_id)) {
             setInstructionLabel('Cannot simplify move-related nodes!');
@@ -389,6 +412,13 @@ function candidateSpill() {
         // 1) >= K neighbours
         // AND
         // 2) non-MOVE related
+        // AND
+        // 3) not pre-coloured
+
+        if (isPreColoured(nodes, edges, selected_node_id)) {
+            setInstructionLabel('Cannot spill pre-coloured nodes!');
+            return false;
+        }
 
         if (isMoveRelated(nodes, edges, selected_node_id)) {
             setInstructionLabel('Cannot spill move-related nodes!');
