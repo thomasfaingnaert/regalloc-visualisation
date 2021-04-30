@@ -119,6 +119,8 @@ document.onkeydown = function (event) {
         coalesceGeorge();
     else if (event.key == 'f')
         freeze();
+    else if (event.key == 'a')
+        assignPreColours();
 }
 
 /**********************************************************
@@ -325,7 +327,7 @@ function isPreColoured(nodes, edges, node_id) {
 
     if (node == null)
         return false;
-    
+
     return node['label'].split('').some(c => (c >= '0') && (c <= '9'));
 }
 
@@ -437,6 +439,50 @@ function candidateSpill() {
     });
 }
 
+/**
+ * Colour a node with the first colour available.
+ * @param {vis.DataSet} nodes The DataSet containing the nodes.
+ * @param {vis.DataSet} edges The DataSet containing the edges.
+ * @param {string} node_id The ID of the node to colour.
+ */
+function colourNode(nodes, edges, node_id) {
+    // Find a colour for the node
+    var possible_colours = colours.map(x => x);
+    possible_colours = possible_colours.slice(0, getK());
+
+    getNeighbourIds(nodes, edges, node_id).forEach(nid => {
+        var c = nodes.get(nid)['color']['background'];
+        possible_colours = possible_colours.filter(x => x != c);
+    });
+
+    if (possible_colours.length == 0) {
+        alert(`Node ${nodes.get(node_id)['label']} cannot be coloured: no colours left!`);
+        return;
+    }
+
+    // Select the first possible colour.
+    var colour = possible_colours[0];
+
+    // Colour the node
+    var node = nodes.get(node_id);
+    node['color']['background'] = colour;
+    nodes.update(node);
+}
+
+function assignPreColours() {
+    // Condition: only pre-coloured nodes must remain
+    var non_precoloured_nodes = nodes.get({ filter: node => !isPreColoured(nodes, edges, node['id']) });
+
+    if (non_precoloured_nodes.length != 0) {
+        setInstructionLabel(`Cannot assign pre-colours: some non-pre-coloured nodes remain (${non_precoloured_nodes.map(node => node['label'])})!`);
+        return false;
+    }
+
+    // Colour pre-coloured nodes.
+    var i = 0;
+    nodes.get({ filter: node => isPreColoured(nodes, edges, node['id']) }).forEach(node => colourNode(nodes, edges, node['id']));
+}
+
 function select() {
     if (node_stack.length == 0)
         return;
@@ -448,26 +494,8 @@ function select() {
     // Add node back
     var added_node_ids = nodes.add(node);
 
-    // Find a colour for the node
-    var possible_colours = colours.map(x => x);
-    possible_colours = possible_colours.slice(0, getK());
-
-    getNeighbourIds(nodes, edges, added_node_ids[0]).forEach(node_id => {
-        var c = nodes.get(node_id)['color']['background'];
-        possible_colours = possible_colours.filter(x => x != c);
-    });
-
-    if (possible_colours.length == 0) {
-        alert('Node cannot be coloured: no colours left!');
-        return;
-    }
-
-    var colour = possible_colours[0];
-
-    node['color']['background'] = colour;
-
-    // Colour the node
-    nodes.update(node);
+    // Colour the node.
+    colourNode(nodes, edges, added_node_ids[0]);
 }
 
 function coalesceHelper(condition_callback) {
@@ -661,6 +689,7 @@ document.querySelector('#coalesceBriggsButton').addEventListener('click', coales
 document.querySelector('#coalesceGeorgeButton').addEventListener('click', coalesceGeorge);
 document.querySelector('#freezeButton').addEventListener('click', freeze);
 document.querySelector('#candidateSpillButton').addEventListener('click', candidateSpill);
+document.querySelector('#assignPreColoursButton').addEventListener('click', assignPreColours);
 document.querySelector('#selectButton').addEventListener('click', select);
 document.querySelector('#showImportDialogButton').addEventListener('click', showImportDialog);
 document.querySelector('#exportNetworkButton').addEventListener('click', exportNetwork);
