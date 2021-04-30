@@ -306,7 +306,7 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
     nodes.remove(node2);
 
     // Delete any edges connected to node 2
-    var edges_to_delete = edges.filter(edge => edge['from'] == node_id_2 || edge['to'] == node_id_2);
+    var edges_to_delete = edges.get({ filter: edge => edge['from'] == node_id_2 || edge['to'] == node_id_2 });
     edges.remove(edges_to_delete);
 
     // Return ID of merged node
@@ -379,7 +379,7 @@ function freeze() {
     }
 
     // Remove all move-related edges connected to the selected node
-    var edges_to_delete = edges.filter(edge => edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0]);
+    var edges_to_delete = edges.get({ filter: edge => edge['from'] == selected_node_ids[0] || edge['to'] == selected_node_ids[0] });
     edges.remove(edges_to_delete);
 }
 
