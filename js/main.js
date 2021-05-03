@@ -48,6 +48,10 @@ var options = {
 
         addEdge: function (data, callback) {
             data['dashes'] = create_move_edge;
+
+            // Curve the edge
+            curveEdge(data);
+
             callback(data);
 
             // Keep adding edges
@@ -178,6 +182,17 @@ function deleteSelected() {
 /**********************************************************
  * Helper functions
  *********************************************************/
+
+/**
+ * Curves an edge, so it does not overlap with other edges.
+ * @param {Object} edge_data The data of the edge.
+ */
+function curveEdge(edge_data) {
+    edge_data.smooth = {
+        type: 'curvedCW',
+        roundness: edge_data['dashes'] ? 0.1 : 0
+    };
+}
 
 /**
  * Gets the neighbours of the node with the given ID. The move_edges parameter determines whether to follow only interference, or only move-related edges.
@@ -645,6 +660,12 @@ function importNetwork() {
     importNodes(nodes, inputData['nodes']);
     importEdges(edges, inputData['edges']);
     setK(inputData['K']);
+
+    // Curve move edges
+    edges.forEach(edge => {
+        curveEdge(edge);
+        edges.update(edge);
+    });
 }
 
 function importExample(example) {
@@ -652,6 +673,12 @@ function importExample(example) {
         importNodes(nodes, inputData['nodes']);
         importEdges(edges, inputData['edges']);
         setK(inputData['K']);
+
+        // Curve move edges
+        edges.forEach(edge => {
+            curveEdge(edge);
+            edges.update(edge);
+        });
     });
 }
 
