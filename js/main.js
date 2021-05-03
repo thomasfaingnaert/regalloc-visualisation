@@ -56,7 +56,7 @@ var options = {
     },
 
     physics: {
-        enabled: true
+        enabled: false
     },
 
     interaction: {
@@ -68,8 +68,7 @@ var options = {
         color: {
             border: 'black',
             background: 'white'
-        },
-        physics: false
+        }
     }
 };
 
