@@ -153,7 +153,7 @@ function addPrecolouredNodes() {
     // Add edges between each pair of nodes
     for (var i = 0; i < added_node_ids.length; ++i) {
         for (var j = i + 1; j < added_node_ids.length; ++j) {
-            edges.add({ 'from': added_node_ids[i], 'to': added_node_ids[j], 'dashes': false });
+            edges.add(curveEdge({ 'from': added_node_ids[i], 'to': added_node_ids[j], 'dashes': false }));
         }
     }
 }
@@ -303,7 +303,7 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
         .filter(x => !node1_interference_neighbours.includes(x))
         .filter(x => x != node_id_1)
         .forEach(neighbour_id => {
-            edges.add({ 'from': node_id_1, 'to': neighbour_id, 'dashes': false });
+            edges.add(curveEdge({ 'from': node_id_1, 'to': neighbour_id, 'dashes': false }));
         });
 
     // Add all move edges from node2 to node1 as well (except those to node1).
@@ -312,7 +312,7 @@ function mergeNodes(nodes, edges, node_id_1, node_id_2) {
         .filter(x => !node1_move_neighbours.includes(x))
         .filter(x => x != node_id_1)
         .forEach(neighbour_id => {
-            edges.add({ 'from': node_id_1, 'to': neighbour_id, 'dashes': true });
+            edges.add(curveEdge({ 'from': node_id_1, 'to': neighbour_id, 'dashes': true }));
         });
 
     // Propagate changes to node 1
