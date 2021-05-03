@@ -140,14 +140,19 @@ function addPrecolouredNodes() {
 
     // Add nodes
     for (var i = 0; i < getK(); ++i) {
-        added_node_ids = added_node_ids.concat(nodes.add({
+        var node_id = nodes.add({
             label: (i + 1).toString(),
             color: {
                 background: 'white',
-            },
-            x: 100 * Math.cos(2 * Math.PI * i / getK()),
-            y: -100 * Math.sin(2 * Math.PI * i / getK())
-        }));
+            }
+        })[0];
+
+        added_node_ids.push(node_id);
+
+        var r = 100;
+        var theta = 2 * Math.PI * i / getK();
+
+        network.moveNode(node_id, r * Math.cos(theta), -r * Math.sin(theta));
     }
 
     // Add edges between each pair of nodes
