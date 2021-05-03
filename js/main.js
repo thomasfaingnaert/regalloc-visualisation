@@ -186,12 +186,15 @@ function deleteSelected() {
 /**
  * Curves an edge, so it does not overlap with other edges.
  * @param {Object} edge_data The data of the edge.
+ * @returns The mutated edge_data.
  */
 function curveEdge(edge_data) {
     edge_data.smooth = {
         type: 'curvedCW',
         roundness: edge_data['dashes'] ? 0.1 : 0
     };
+
+    return edge_data;
 }
 
 /**
