@@ -545,6 +545,7 @@ function coalesceBriggs() {
         // 1) nodes MUST NOT interfere
         // 2) nodes MUST be move-related
         // 3) Brigg's criterion must hold:
+        //      - both x and y are pseudo (non-precoloured) registers
         //      - the resulting node ab must have < K
         //        neighbours of degree >= K
 
@@ -555,6 +556,12 @@ function coalesceBriggs() {
 
         if (!areMoveRelated(nodes, edges, node_a_id, node_b_id)) {
             setInstructionLabel('Cannot coalesce nodes that are not move-related!');
+            return false;
+        }
+
+        if (isPreColoured(nodes, edges, node_a_id) ||
+            isPreColoured(nodes, edges, node_b_id)) {
+            setInstructionLabel('Cannot coalesce precoloured nodes using Briggs!');
             return false;
         }
 
@@ -594,6 +601,7 @@ function coalesceGeorge() {
         // 1) nodes MUST NOT interfere
         // 2) nodes MUST be move-related
         // 3) George's criterion must hold:
+        //      - a non-precoloured, b pre-coloured
         //      - every neighbour t of a must either:
         //          a) be a neighbour of b, OR
         //          b) have degree < K
@@ -610,6 +618,13 @@ function coalesceGeorge() {
 
         // Helper function for George
         var george_criterion = (node_a_id, node_b_id) => {
+            // Node a must be non-precoloured.
+            // Nobe b must be precoloured.
+            if (isPreColoured(nodes, edges, node_a_id) ||
+                !isPreColoured(nodes, edges, node_b_id)) {
+                return false;
+            }
+
             var neighbours_a = getNeighbourIds(nodes, edges, node_a_id);
             var neighbours_b = getNeighbourIds(nodes, edges, node_b_id);
 
